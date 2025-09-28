@@ -13,14 +13,6 @@ This project was created as a portfolio piece to demonstrate both back-end and f
 - Real-time audio visualizer
 - Modern responsive UI with custom CSS animations
 
-## 🚀 Features
-
-- 🎨 Responsive design with HTML5, CSS3, and JavaScript
-- ⚡ Flask back-end for dynamic content
-- 📂 Organized project structure (`static/` & `templates/`)
-- 🖼️ Easy theming and customization
-- 🛠️ Ready to deploy on platforms like Render, Vercel, or Heroku
-
 ---
 
 ## 🛠 Tech Stack
