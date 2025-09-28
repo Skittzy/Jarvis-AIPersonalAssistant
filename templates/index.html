@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jarvis Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+    <h1>Jarvis</h1>
+    <div class="visualiser-container">
+        <canvas id="visualiser" width="710" height="200"></canvas>
+    </div>
+
+    <div class="status">Status: {{ status }}</div>
+    <div id="cue" class="cue">
+    💡 Tip: Ask "What can you do?" to learn about Jarvis' capabilities!
+    </div>  
+    <div class="main-content">
+        <div class="conversation">
+            {% for line in conversation %}
+                {% if loop.index is even %}
+                    <div class="jarvis">Jarvis: <div class="jarvis-line"> {{ line }}</div></div>
+                {% else %}
+                    <div class="user">Me: <div class="user-line">{{ line }}</div></div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="tasks">
+            <!-- Tasks will be dynamically injected here -->
+        </div>
+    </div>
+
+    <div class="controls">
+        <a href="{{ url_for('reset') }}" class="button">Clear Conversation</a>
+        {% if program_running == False %}
+            <a href="{{ url_for('start_conversation') }}" class="button start">Start Conversation</a>
+        {% else %}
+            <a onclick="endConversationFrontend()" class="button end">End Conversation</a>
+        {% endif %}
+        <!-- <a href="{{ url_for('scrape_data') }}" class="button">Update Data</a> -->
+    </div>
+
+    <script>
+        updateTasks();
+        updateConversation();
+
+        let lastJarvisLine = "";
+        let conversationActive = true; 
+
+        async function updateConversation() {
+            if (!conversationActive) return; 
+            try {
+                let response = await fetch("{{ url_for('get_conversation') }}");
+                let data = await response.json();
+
+                // Update status
+                document.querySelector(".status").textContent = "Status: " + data.status;
+
+                let convoDiv = document.querySelector(".conversation");
+                let wasNearBottom = convoDiv.scrollHeight - convoDiv.scrollTop - convoDiv.clientHeight < 50;
+
+                // Update conversation
+                convoDiv.innerHTML = "";
+                data.conversation.forEach((line, index) => {
+                    let div = document.createElement("div");
+                    if (line.startsWith("Jarvis:"))  {
+                        div.classList.add("jarvis");
+                        div.innerHTML = line;
+
+                        // Only play sound if it's a NEW Jarvis line (no overlaping)
+                        if (index === data.conversation.length - 1 && line !== lastJarvisLine && conversationActive) {
+                            playJarvisAudio();
+                            lastJarvisLine = line;
+                        }
+
+                    } else {
+                        div.classList.add("user");
+                        div.innerHTML = line;
+                    }
+                    convoDiv.appendChild(div);
+                });
+
+                // // Automatically scroll to bottom of conversation
+                if (wasNearBottom) {
+                    convoDiv.scrollTo({
+                        top: convoDiv.scrollHeight,
+                        behavior: "smooth"
+                    });
+                }
+            } catch (err) {
+                console.error("Error fetching conversation:", err);
+            }
+        }
+
+        async function updateTasks() {
+            try {
+                let response = await fetch("/get_tasks");
+                let data = await response.json();
+                let tasksDiv = document.querySelector(".tasks");
+                tasksDiv.innerHTML = ""; // clear old tasks
+
+                
+                let mainContent = document.querySelector(".main-content");
+
+                if (data.tasks.length === 0) {
+                    // Hide tasks container smoothly
+                    mainContent.classList.remove("tasks-visible");
+                } else {
+                    // Show tasks container smoothly
+                    mainContent.classList.add("tasks-visible");
+                }
+
+                data.tasks.forEach((task, index) => {
+                    let div = document.createElement("div");
+                    div.classList.add("task");
+                    if (task.done) div.classList.add("done");
+
+                    // Create checkbox
+                    let checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.checked = task.done;
+                    checkbox.style.marginRight = "10px";
+
+                    // Toggle task completion when clicked
+                    checkbox.addEventListener("change", async () => {
+                        task.done = checkbox.checked;
+
+                        // Update visual
+                        if (task.done) div.classList.add("done");
+                        else div.classList.remove("done");
+
+                        // Send update to server (optional, requires a Flask endpoint)
+                        await fetch("/update_task", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ index: index, done: task.done })
+                        });
+                    });
+
+                    div.appendChild(checkbox);
+
+                    // Task text
+                    let span = document.createElement("span");
+                    span.textContent = task.task;
+                    div.appendChild(span);
+
+                    tasksDiv.appendChild(div);
+                });
+            } catch (err) {
+                console.error("Error fetching tasks:", err);
+            }
+        }
+
+
+        // Refresh conversation and tasks every 2s
+        let convoInterval, tasksInterval;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            convoInterval = setInterval(updateConversation, 2000);
+            tasksInterval = setInterval(updateTasks, 2000);
+        });
+
+        let audioContext, analyser, source, dataArray, bufferLength;
+        let canvas = document.getElementById("visualiser");
+        let ctx = canvas.getContext("2d");
+
+        async function playJarvisAudio() {
+            if (!conversationActive) return;
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+            }
+
+            // Load audio from flask
+            try {
+                let response = await fetch("/audio/response.wav?_=" + new Date().getTime());
+                let arrayBuffer = await response.arrayBuffer();
+                let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                source.start();
+
+                drawVisualiser(analyser);
+
+                source.onended = async () => {
+                    // Tell flask done speaking
+                    if (!conversationActive) return;
+                    await fetch("/get_conversation", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ doneSpeaking: true })
+                    });
+                };
+            } catch (err) {
+                console.error("Error playing audio:", err);
+            }
+        }
+
+
+        function drawVisualiser() {
+
+            requestAnimationFrame(drawVisualiser);
+
+            analyser.getByteFrequencyData(dataArray);
+
+            ctx.fillStyle = "#121212";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let barWidth = (canvas.width / bufferLength) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i];
+                ctx.fillStyle = "#00bfff";
+                ctx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+                x += barWidth + 1;
+            }
+        }
+
+        function endConversationFrontend() {
+            conversationActive = false;
+
+            // Stop the polling loops completely
+            clearInterval(convoInterval);
+            clearInterval(tasksInterval);
+
+            fetch("{{ url_for('end_conversation') }}")
+                .then(() => {
+                    // Replace End button with Start button dynamically
+                    const controls = document.querySelector(".controls");
+                    controls.innerHTML = `
+                        <a href="{{ url_for('reset') }}" class="button">Clear Conversation</a>
+                        <a href="{{ url_for('start_conversation') }}" class="button start">Start Conversation</a>
+                    `;
+                    document.querySelector(".status").textContent = "Status: Idle";
+                });
+        }
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+        let cue = document.getElementById("cue");
+
+        function removeCue() {
+            if (cue) {
+                cue.remove();
+                localStorage.setItem("cueShown", "true"); // remember that cue was shown
+            }
+        }
+
+        if (!localStorage.getItem("cueShown")) {
+            cue.style.display = "block";
+        } else {
+            cue.style.display = "none";
+        }
+
+        // Remove cue when user asks "What can you do?" or starts conversation
+        const convoDiv = document.querySelector(".conversation");
+        const observer = new MutationObserver(() => {
+            convoDiv.querySelectorAll(".user").forEach(userMsg => {
+                if (userMsg.innerText.toLowerCase().includes("what can you do") ||
+                    userMsg.innerText.toLowerCase().includes("help")) {
+                    removeCue();
+                }
+            });
+        });
+
+        observer.observe(convoDiv, { childList: true });
+    });
+
+    </script>
+</body>
+</html>

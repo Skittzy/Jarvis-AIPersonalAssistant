@@ -1,0 +1,27 @@
+Current Weather: 15 °C. Light rain. Mostly cloudy. (Weather station: Skopje-Petrovec, North Macedonia).
+14 Day Forcast Data: 
+Пон29 Сеп - Sprinkles early. Overcast. - 25 °C 
+Вто30 Сеп - Morning clouds. - 25 °C 
+Сре1 Окт - Showers late. Overcast. - 20 °C 
+Чет2 Окт - Showery. Overcast. - 10 °C 
+Пет3 Окт - Showery. Overcast. - 8 °C 
+Саб4 Окт - Cloudy. - 15 °C 
+Нед5 Окт - Sunny. - 19 °C 
+Пон6 Окт - Scattered clouds. - 21 °C 
+Вто7 Окт - Partly cloudy. - 20 °C 
+Сре8 Окт - Mostly sunny. - 20 °C 
+Чет9 Окт - Mostly cloudy. - 20 °C 
+Пет10 Окт - Isolated tstorms late. Overcast. - 20 °C 
+Саб11 Окт - Decreasing cloudiness. - 18 °C 
+Нед12 Окт - Sunny. - 17 °C 
+Пон13 Окт - Sunny. - 17 °C 
+Top news today: 
+Headline: iRobot co-founder Rodney Brooks details why humanoid robots won't learn human-level dexterity from current methods, how to make them safe for humans, and more .
+Headline: How Nvidia's large investments in AI startups and data centers act like a form of financial stimulus, potentially artificially inflating demand for its GPUs .
+Headline: Since 2019, Brazil's courts have developed or implemented over 140 AI projects that have helped make the country's overburdened judicial system more efficient .
+Headline: A look at AI-powered “nudify” tools, which make it fast and easy to make nonconsensual, deepfake porn, and the limited legal options available to their victims .
+Headline: Turning compute into a tradable commodity could fuel the next stage of the AI boom, just like oil futures and spectrum auctions unlocked waves of investment .
+Headline: A book excerpt details how a small team of content curators hired by ByteDance in Mexico City in 2018 shaped TikTok's For You algorithm in Latin America .
+Headline: How JD Vance played a key role in the TikTok US deal, amid concerns about the VP acting as a corporate dealmaker in the forced spin-off of a private company .
+Headline: How Mode to Code, a nonprofit founded by a teenager, is teaching Bay Area seniors to use AI and avoid scams through free coding and tech literacy classes .
+Headline: Education software company EdSights, which uses SMS texting and AI to reach students and identify those at risk of dropping out, raised $80M from JMI Equity .
